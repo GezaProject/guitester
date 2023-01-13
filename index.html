@@ -76,7 +76,7 @@
                 background-attachment: fixed;
 
                 /* width: 100vw; */
-                height: 1080px;
+                /* height: 1080px; */
 
                 aspect-ratio: 1920/1080;
             }
@@ -164,7 +164,7 @@
                 accept="image/png"
                 onchange="preview(event)" />
         </div>
-        <div class="preview">
+        <div id="preview" class="preview">
             <div id="overlay" onclick="resetPreview()"></div>
         </div>
         <img id="gui" class="gui" />
@@ -260,10 +260,13 @@
                 gui.toggleAttribute("height");
             }
 
+            document.getElementById("preview").style.height =
+                screen.height + "px";
+
             if (window.visualViewport.width < 1920) {
                 queuePopup("Warning", "Resolusi client terlalu kecil!");
             } else {
-                if (window.visualViewport.height < 1080) {
+                if (window.visualViewport.height < screen.height) {
                     queuePopup("Warning", "Klik F11 untuk mode fullscreen!");
                 }
             }
