@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>GUI Preview</title>
+        <style>
+            @font-face {
+                font-family: "Minecraft";
+                src: url("/assets/fonts/Minecraftia.ttf");
+            }
+
+            body {
+                width: 100vw;
+                height: 100vh;
+
+                overflow: hidden;
+                margin: 0;
+
+                user-select: none;
+            }
+
+            .upload {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+
+                display: flex;
+                flex-direction: column;
+            }
+
+            .upload > button {
+                background: #999 url("assets/image/bgbtn.png") center / cover;
+                image-rendering: pixelated;
+                border: 2px solid #000;
+
+                font-family: "Minecraft";
+                color: #ddd;
+                text-shadow: 2px 2px #000a;
+                box-shadow: inset -2px -4px #0006, inset 2px 2px #fff7;
+
+                height: 30pt;
+                width: calc(30pt * 10);
+
+                display: inline-flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .upload > button:hover {
+                border: 2px solid #fff;
+            }
+
+            .upload > button > div {
+                width: fit-content;
+                height: fit-content;
+
+                margin-top: 5px;
+            }
+
+            .upload > button:nth-child(3) {
+                margin-top: 10px;
+            }
+
+            .upload[disabled] {
+                display: none;
+            }
+
+            .preview {
+                background-image: url("assets/image/preview.png");
+                background-repeat: no-repeat;
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+
+                /* width: 100vw; */
+                height: 1080px;
+
+                aspect-ratio: 1920/1080;
+            }
+
+            .gui {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+
+                border: none;
+                image-rendering: pixelated;
+                z-index: 1000;
+                pointer-events: none;
+            }
+
+            .preview > div[active] {
+                position: absolute;
+                width: 100vw;
+                height: 100vh;
+                background-color: rgba(0, 0, 0, 73.35%);
+            }
+
+            .popup {
+                position: absolute;
+                top: 0;
+                right: 0%;
+
+                image-rendering: pixelated;
+
+                font-family: "Minecraft";
+                color: #ddd;
+                text-shadow: 2px 2px #000a;
+
+                z-index: 2000;
+            }
+
+            .popup[out] {
+                animation-name: popup;
+                animation-duration: 5s;
+                animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+            }
+
+            .popup > img {
+                position: absolute;
+            }
+
+            .popup > span {
+                position: absolute;
+                white-space: nowrap;
+            }
+
+            .popup > span:nth-child(2) {
+                top: 12px;
+                left: 40px;
+                color: #ffff55;
+            }
+
+            .popup > span:nth-child(3) {
+                top: 31px;
+                left: 40px;
+            }
+
+            @keyframes popup {
+                30% {
+                    right: 360px;
+                }
+                70% {
+                    right: 360px;
+                }
+            }
+
+            input[type="file"] {
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="upload" onclick="upload()" class="upload">
+            <button><div>Upload</div></button>
+            <input
+                type="file"
+                id="img"
+                name="img"
+                accept="image/png"
+                onchange="preview(event)" />
+        </div>
+        <div class="preview">
+            <div id="overlay" onclick="resetPreview()"></div>
+        </div>
+        <img id="gui" class="gui" />
+        <div id="popup" class="popup">
+            <img src="assets/image/popup.png" />
+            <span id="popup-title">Error</span>
+            <span id="popup-description">Size gambar terlalu besar</span>
+        </div>
+
+        <script>
+            let sfx = new Audio("assets/sounds/click.ogg");
+            let popup_in = new Audio("assets/sounds/popup-in.ogg");
+            let popup_out = new Audio("assets/sounds/popup-out.ogg");
+            let gui = document.getElementById("gui");
+
+            function openPopup(title, description) {
+                return new Promise((resolve, reject) => {
+                    popup_in.play();
+                    document.getElementById("popup-title").textContent = title;
+                    document.getElementById("popup-description").textContent =
+                        description;
+                    document.getElementById("popup").setAttribute("out", true);
+                    setTimeout(() => {
+                        popup_out.play();
+                    }, 3500);
+                    setTimeout(() => {
+                        document.getElementById("popup").removeAttribute("out");
+                        setTimeout(() => {
+                            resolve();
+                        }, 500);
+                    }, 5000);
+                });
+            }
+
+            let popups = [];
+            function queuePopup(title, description) {
+                let popup = {
+                    title,
+                    description,
+                };
+
+                popups.push(popup);
+
+                if (popups.length == 1) {
+                    let popupping = () => {
+                        if (popups.length <= 0) return;
+
+                        let p = popups[popups.length - 1];
+                        console.log(p);
+                        openPopup(p.title, p.description).finally(() => {
+                            popups.shift();
+                            popupping();
+                        });
+                    };
+                    popupping();
+                }
+            }
+
+            function upload() {
+                sfx.play();
+
+                document.getElementById("img").click();
+            }
+
+            function preview(event) {
+                sfx.play();
+
+                document.getElementById("overlay").toggleAttribute("active");
+                document.getElementById("upload").toggleAttribute("disabled");
+
+                gui.src = URL.createObjectURL(event.target.files[0]);
+                gui.onload = () => {
+                    if (gui.width > 1920 / 3) {
+                        queuePopup("Error", "Resolusi gambar terlalu besar");
+                        resetPreview();
+                        return;
+                    }
+                    let width = gui.width * 3;
+                    let height = (gui.height / gui.width) * width;
+                    gui.width = width;
+                    gui.height = height;
+                };
+            }
+
+            function resetPreview() {
+                sfx.play();
+
+                document.getElementById("overlay").toggleAttribute("active");
+                document.getElementById("upload").toggleAttribute("disabled");
+
+                gui.toggleAttribute("src");
+                gui.toggleAttribute("width");
+                gui.toggleAttribute("height");
+            }
+
+            if (window.visualViewport.width < 1920) {
+                queuePopup("Warning", "Resolusi client terlalu kecil!");
+            } else {
+                if (window.visualViewport.height < 1080) {
+                    queuePopup("Warning", "Klik F11 untuk mode fullscreen!");
+                }
+            }
+        </script>
+    </body>
+</html>
